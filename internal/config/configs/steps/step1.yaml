@@ -1,0 +1,66 @@
+number: 1
+name: "Network Construction"
+description: "VPC, Subnets, Security Groups, Internet Gateway"
+cloudformation_stacks:
+  - "sbcntr-base"
+resources:
+  - type: "AWS::EC2::VPC"
+    identifier: "vpc-sbcntr"
+    name: "sbcntr"
+    required: true
+    validation_rules:
+      - "vpc_cidr_check"
+      - "vpc_state_available"
+  - type: "AWS::EC2::Subnet"
+    identifier: "subnet-public-ingress-1a"
+    name: "sbcntr-subnet-public-ingress-1a"
+    required: true
+    validation_rules:
+      - "subnet_cidr_check"
+      - "subnet_availability_zone"
+  - type: "AWS::EC2::Subnet"
+    identifier: "subnet-public-ingress-1c"
+    name: "sbcntr-subnet-public-ingress-1c"
+    required: true
+    validation_rules:
+      - "subnet_cidr_check"
+      - "subnet_availability_zone"
+  - type: "AWS::EC2::Subnet"
+    identifier: "subnet-private-container-1a"
+    name: "sbcntr-subnet-private-container-1a"
+    required: true
+    validation_rules:
+      - "subnet_cidr_check"
+      - "subnet_availability_zone"
+  - type: "AWS::EC2::Subnet"
+    identifier: "subnet-private-container-1c"
+    name: "sbcntr-subnet-private-container-1c"
+    required: true
+    validation_rules:
+      - "subnet_cidr_check"
+      - "subnet_availability_zone"
+  - type: "AWS::EC2::SecurityGroup"
+    identifier: "sg-ingress"
+    name: "sbcntr-sg-ingress"
+    required: true
+    validation_rules:
+      - "sg_ingress_rules_check"
+  - type: "AWS::EC2::SecurityGroup"
+    identifier: "sg-frontend"
+    name: "sbcntr-sg-frontend-container"
+    required: true
+    validation_rules:
+      - "sg_frontend_rules_check"
+  - type: "AWS::EC2::SecurityGroup"
+    identifier: "sg-backend"
+    name: "sbcntr-sg-backend-container"
+    required: true
+    validation_rules:
+      - "sg_backend_rules_check"
+  - type: "AWS::EC2::InternetGateway"
+    identifier: "igw-sbcntr"
+    name: "sbcntr-igw"
+    required: true
+    validation_rules:
+      - "igw_attached_to_vpc"
+dependencies: []

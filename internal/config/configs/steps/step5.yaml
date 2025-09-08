@@ -1,0 +1,35 @@
+number: 5
+name: "ECS Service Deployment"
+description: "ECS Task Definitions and Services"
+cloudformation_stacks: []
+resources:
+  - type: "AWS::ECS::TaskDefinition"
+    identifier: "sbcntr-backend"
+    name: "sbcntr-backend"
+    required: true
+    validation_rules:
+      - "task_def_family_check"
+      - "task_def_container_check"
+  - type: "AWS::ECS::TaskDefinition"
+    identifier: "sbcntr-frontend"
+    name: "sbcntr-frontend"
+    required: true
+    validation_rules:
+      - "task_def_family_check"
+      - "task_def_container_check"
+  - type: "AWS::ECS::Service"
+    identifier: "sbcntr-backend-service"
+    name: "sbcntr-backend-service"
+    required: true
+    validation_rules:
+      - "ecs_service_running"
+      - "ecs_service_desired_count"
+  - type: "AWS::ECS::Service"
+    identifier: "sbcntr-frontend-service"
+    name: "sbcntr-frontend-service"
+    required: true
+    validation_rules:
+      - "ecs_service_running"
+      - "ecs_service_desired_count"
+dependencies:
+  - 4

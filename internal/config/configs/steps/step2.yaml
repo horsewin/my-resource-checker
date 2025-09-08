@@ -1,0 +1,21 @@
+number: 2
+name: "ECR Repository Setup"
+description: "ECR repositories for frontend and backend containers"
+cloudformation_stacks: []
+resources:
+  - type: "AWS::ECR::Repository"
+    identifier: "sbcntr-backend"
+    name: "sbcntr-backend"
+    required: true
+    validation_rules:
+      - "ecr_encryption_enabled"
+      - "ecr_scan_on_push"
+  - type: "AWS::ECR::Repository"
+    identifier: "sbcntr-frontend"
+    name: "sbcntr-frontend"
+    required: true
+    validation_rules:
+      - "ecr_encryption_enabled"
+      - "ecr_scan_on_push"
+dependencies:
+  - 1

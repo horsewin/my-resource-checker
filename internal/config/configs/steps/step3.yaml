@@ -1,0 +1,35 @@
+number: 3
+name: "VPC Endpoints Setup"
+description: "VPC Endpoints for ECR, S3, and CloudWatch Logs"
+cloudformation_stacks: []
+resources:
+  - type: "AWS::EC2::VPCEndpoint"
+    identifier: "vpce-ecr-api"
+    name: "sbcntr-vpce-ecr-api"
+    required: true
+    validation_rules:
+      - "vpce_service_name_check"
+      - "vpce_attached_to_vpc"
+  - type: "AWS::EC2::VPCEndpoint"
+    identifier: "vpce-ecr-dkr"
+    name: "sbcntr-vpce-ecr-dkr"
+    required: true
+    validation_rules:
+      - "vpce_service_name_check"
+      - "vpce_attached_to_vpc"
+  - type: "AWS::EC2::VPCEndpoint"
+    identifier: "vpce-s3"
+    name: "sbcntr-vpce-s3"
+    required: true
+    validation_rules:
+      - "vpce_service_name_check"
+      - "vpce_attached_to_vpc"
+  - type: "AWS::EC2::VPCEndpoint"
+    identifier: "vpce-logs"
+    name: "sbcntr-vpce-logs"
+    required: true
+    validation_rules:
+      - "vpce_service_name_check"
+      - "vpce_attached_to_vpc"
+dependencies:
+  - 1

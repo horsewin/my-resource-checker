@@ -1,0 +1,46 @@
+number: 4
+name: "ECS Cluster and Load Balancer"
+description: "ECS Cluster, ALB, Target Groups setup"
+cloudformation_stacks:
+  - "sbcntr-ecs"
+resources:
+  - type: "AWS::ECS::Cluster"
+    identifier: "sbcntr-ecs-cluster"
+    name: "sbcntr-ecs-cluster"
+    required: true
+    validation_rules:
+      - "ecs_cluster_active"
+  - type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    identifier: "sbcntr-alb-internal"
+    name: "sbcntr-alb-internal"
+    required: true
+    validation_rules:
+      - "alb_type_check"
+      - "alb_scheme_internal"
+      - "alb_state_active"
+  - type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    identifier: "sbcntr-alb-frontend"
+    name: "sbcntr-alb-frontend"
+    required: true
+    validation_rules:
+      - "alb_type_check"
+      - "alb_scheme_internet_facing"
+      - "alb_state_active"
+  - type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    identifier: "sbcntr-tg-frontend"
+    name: "sbcntr-tg-frontend"
+    required: true
+    validation_rules:
+      - "tg_protocol_check"
+      - "tg_port_check"
+  - type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    identifier: "sbcntr-tg-backend"
+    name: "sbcntr-tg-backend"
+    required: true
+    validation_rules:
+      - "tg_protocol_check"
+      - "tg_port_check"
+dependencies:
+  - 1
+  - 2
+  - 3

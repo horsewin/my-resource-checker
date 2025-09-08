@@ -1,0 +1,16 @@
+type: "AWS::ECR::Repository"
+validation_rules:
+  - name: "ecr_encryption_enabled"
+    type: "property"
+    property: "EncryptionType"
+    expected: "AES256"
+    operator: "eq"
+    error_message: "ECR repository should have AES256 encryption enabled"
+    severity: "warning"
+  - name: "ecr_scan_on_push"
+    type: "property"
+    property: "ImageScanningConfiguration.ScanOnPush"
+    expected: true
+    operator: "eq"
+    error_message: "ECR repository should have scan on push enabled"
+    severity: "warning"
