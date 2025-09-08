@@ -588,6 +588,9 @@ func (v *ResourceValidator) checkECRRepository(ctx context.Context, repoName str
 		props["EncryptionType"] = string(repo.EncryptionConfiguration.EncryptionType)
 	}
 
+	// ImageTagMutabilityを追加
+	props["ImageTagMutability"] = string(repo.ImageTagMutability)
+
 	return true, props, nil
 }
 
