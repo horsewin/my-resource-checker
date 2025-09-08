@@ -66,21 +66,7 @@ func (r *ConsoleReporter) printResources(resources []validator.ResourceResult) {
 		icon := r.getResourceStatusIcon(resource.Status)
 		fmt.Printf("%s %s (%s)\n", icon, resource.Name, resource.Type)
 
-		if r.verbose {
-			if len(resource.Expected) > 0 {
-				fmt.Println("  Expected:")
-				for key, value := range resource.Expected {
-					fmt.Printf("    %s: %v\n", key, value)
-				}
-			}
-
-			if len(resource.Actual) > 0 {
-				fmt.Println("  Actual:")
-				for key, value := range resource.Actual {
-					fmt.Printf("    %s: %v\n", key, value)
-				}
-			}
-		}
+		// Verbose output disabled to keep output clean
 
 		for _, err := range resource.Errors {
 			fmt.Printf("  ❌ %s\n", err)

@@ -119,7 +119,7 @@ func (e *Engine) validateResource(ctx context.Context, resource config.ResourceD
 
 	validator := NewResourceValidator(e.awsClient, e.configManager)
 
-	exists, actualProps, err := validator.CheckResourceExists(ctx, resource.Type, resource.Identifier)
+	exists, actualProps, err := validator.CheckResourceExists(ctx, resource.Type, resource.Name)
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("Failed to check resource: %v", err))
 		return result

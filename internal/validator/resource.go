@@ -9,7 +9,9 @@ import (
 	"sbcntr2-test-tool/internal/config"
 	"strings"
 
+	awsutil "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
@@ -27,32 +29,32 @@ func NewResourceValidator(awsClient *aws.Client, configManager *config.Manager) 
 	}
 }
 
-func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceType, resourceID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceType, resourceName string) (bool, map[string]interface{}, error) {
 	switch resourceType {
 	case "AWS::EC2::VPC":
-		return v.checkVPC(ctx, resourceID)
+		return v.checkVPC(ctx, resourceName)
 	case "AWS::EC2::Subnet":
-		return v.checkSubnet(ctx, resourceID)
+		return v.checkSubnet(ctx, resourceName)
 	case "AWS::EC2::SecurityGroup":
-		return v.checkSecurityGroup(ctx, resourceID)
+		return v.checkSecurityGroup(ctx, resourceName)
 	case "AWS::EC2::InternetGateway":
-		return v.checkInternetGateway(ctx, resourceID)
+		return v.checkInternetGateway(ctx, resourceName)
 	case "AWS::EC2::VPCEndpoint":
-		return v.checkVPCEndpoint(ctx, resourceID)
+		return v.checkVPCEndpoint(ctx, resourceName)
 	case "AWS::ECR::Repository":
-		return v.checkECRRepository(ctx, resourceID)
+		return v.checkECRRepository(ctx, resourceName)
 	case "AWS::ECS::Cluster":
-		return v.checkECSCluster(ctx, resourceID)
+		return v.checkECSCluster(ctx, resourceName)
 	case "AWS::ECS::TaskDefinition":
-		return v.checkTaskDefinition(ctx, resourceID)
+		return v.checkTaskDefinition(ctx, resourceName)
 	case "AWS::ECS::Service":
-		return v.checkECSService(ctx, resourceID)
+		return v.checkECSService(ctx, resourceName)
 	case "AWS::ElasticLoadBalancingV2::LoadBalancer":
-		return v.checkLoadBalancer(ctx, resourceID)
+		return v.checkLoadBalancer(ctx, resourceName)
 	case "AWS::ElasticLoadBalancingV2::TargetGroup":
-		return v.checkTargetGroup(ctx, resourceID)
+		return v.checkTargetGroup(ctx, resourceName)
 	default:
-		return v.checkCloudControlResource(ctx, resourceType, resourceID)
+		return v.checkCloudControlResource(ctx, resourceType, resourceName)
 	}
 }
 
@@ -193,9 +195,14 @@ func toFloat64(val interface{}) (float64, bool) {
 	}
 }
 
-func (v *ResourceValidator) checkVPC(ctx context.Context, vpcID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) checkVPC(ctx context.Context, vpcName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeVpcsInput{
-		VpcIds: []string{vpcID},
+		Filters: []ec2types.Filter{
+			{
+				Name:   awsutil.String("tag:Name"),
+				Values: []string{vpcName},
+			},
+		},
 	}
 
 	result, err := v.awsClient.EC2.DescribeVpcs(ctx, input)
@@ -217,9 +224,14 @@ func (v *ResourceValidator) checkVPC(ctx context.Context, vpcID string) (bool, m
 	return true, props, nil
 }
 
-func (v *ResourceValidator) checkSubnet(ctx context.Context, subnetID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) checkSubnet(ctx context.Context, subnetName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeSubnetsInput{
-		SubnetIds: []string{subnetID},
+		Filters: []ec2types.Filter{
+			{
+				Name:   awsutil.String("tag:Name"),
+				Values: []string{subnetName},
+			},
+		},
 	}
 
 	result, err := v.awsClient.EC2.DescribeSubnets(ctx, input)
@@ -242,9 +254,14 @@ func (v *ResourceValidator) checkSubnet(ctx context.Context, subnetID string) (b
 	return true, props, nil
 }
 
-func (v *ResourceValidator) checkSecurityGroup(ctx context.Context, sgID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) checkSecurityGroup(ctx context.Context, sgName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
-		GroupIds: []string{sgID},
+		Filters: []ec2types.Filter{
+			{
+				Name:   awsutil.String("tag:Name"),
+				Values: []string{sgName},
+			},
+		},
 	}
 
 	result, err := v.awsClient.EC2.DescribeSecurityGroups(ctx, input)
@@ -277,9 +294,14 @@ func (v *ResourceValidator) checkSecurityGroup(ctx context.Context, sgID string)
 	return true, props, nil
 }
 
-func (v *ResourceValidator) checkInternetGateway(ctx context.Context, igwID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) checkInternetGateway(ctx context.Context, igwName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeInternetGatewaysInput{
-		InternetGatewayIds: []string{igwID},
+		Filters: []ec2types.Filter{
+			{
+				Name:   awsutil.String("tag:Name"),
+				Values: []string{igwName},
+			},
+		},
 	}
 
 	result, err := v.awsClient.EC2.DescribeInternetGateways(ctx, input)
@@ -303,9 +325,14 @@ func (v *ResourceValidator) checkInternetGateway(ctx context.Context, igwID stri
 	return true, props, nil
 }
 
-func (v *ResourceValidator) checkVPCEndpoint(ctx context.Context, endpointID string) (bool, map[string]interface{}, error) {
+func (v *ResourceValidator) checkVPCEndpoint(ctx context.Context, endpointName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeVpcEndpointsInput{
-		VpcEndpointIds: []string{endpointID},
+		Filters: []ec2types.Filter{
+			{
+				Name:   awsutil.String("tag:Name"),
+				Values: []string{endpointName},
+			},
+		},
 	}
 
 	result, err := v.awsClient.EC2.DescribeVpcEndpoints(ctx, input)
@@ -483,8 +510,8 @@ func (v *ResourceValidator) checkTargetGroup(ctx context.Context, tgName string)
 	return true, props, nil
 }
 
-func (v *ResourceValidator) checkCloudControlResource(ctx context.Context, resourceType, resourceID string) (bool, map[string]interface{}, error) {
-	resource, err := v.awsClient.GetResource(ctx, resourceType, resourceID)
+func (v *ResourceValidator) checkCloudControlResource(ctx context.Context, resourceType, resourceName string) (bool, map[string]interface{}, error) {
+	resource, err := v.awsClient.GetResource(ctx, resourceType, resourceName)
 	if err != nil {
 		return false, nil, nil
 	}
