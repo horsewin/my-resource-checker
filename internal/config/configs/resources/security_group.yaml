@@ -1,0 +1,52 @@
+type: "AWS::EC2::SecurityGroup"
+validation_rules:
+  # ALB用セキュリティグループのHTTPルール
+  - name: "sg_ingress_http_port"
+    type: "property"
+    property: "IngressRules[0].FromPort"
+    expected: 80
+    operator: "eq"
+    error_message: "ALB ingress rule should allow HTTP (port 80)"
+    severity: "error"
+
+  - name: "sg_ingress_http_cidr"
+    type: "property"
+    property: "IngressRules[0].CidrBlocks[0]"
+    expected: "0.0.0.0/0"
+    operator: "eq"
+    error_message: "ALB HTTP rule should allow traffic from 0.0.0.0/0"
+    severity: "error"
+
+  # フロントエンド用セキュリティグループのルール（ALBからの通信）
+  - name: "sg_frontend_port"
+    type: "property"
+    property: "IngressRules[0].FromPort"
+    expected: 8080
+    operator: "eq"
+    error_message: "Frontend security group should allow traffic on port 8080"
+    severity: "error"
+
+  - name: "sg_frontend_source_sg_name"
+    type: "property"
+    property: "IngressRules[0].SourceSecurityGroupNames[0]"
+    expected: "sbcntr-ingress"
+    operator: "eq"
+    error_message: "Frontend security group should reference sbcntr-ingress (ALB) security group as source"
+    severity: "error"
+
+  # バックエンド用セキュリティグループのルール（フロントエンドからの通信）
+  - name: "sg_backend_port"
+    type: "property"
+    property: "IngressRules[0].FromPort"
+    expected: 8081
+    operator: "eq"
+    error_message: "Backend security group should allow traffic on port 80"
+    severity: "error"
+
+  - name: "sg_backend_source_sg_name"
+    type: "property"
+    property: "IngressRules[0].SourceSecurityGroupNames[0]"
+    expected: "sbcntr-frontend-app"
+    operator: "eq"
+    error_message: "Backend security group should reference sbcntr-frontend-app security group as source"
+    severity: "error"

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sbcntr2-test-tool/internal/aws"
 	"sbcntr2-test-tool/internal/config"
+	"strconv"
 	"strings"
 
 	awsutil "github.com/aws/aws-sdk-go-v2/aws"
@@ -59,7 +60,8 @@ func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceTyp
 }
 
 func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rule config.ValidationRule) error {
-	actualValue, exists := actualProps[rule.Property]
+	// ネストされたプロパティや配列アクセスに対応
+	actualValue, exists := v.getNestedProperty(actualProps, rule.Property)
 	if !exists && rule.Type == "exists" {
 		return fmt.Errorf("%s: property '%s' not found", rule.ErrorMessage, rule.Property)
 	}
@@ -80,9 +82,95 @@ func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rul
 	return nil
 }
 
+// getNestedProperty はネストされたプロパティや配列要素にアクセスする
+// 例: "IngressRules[0].FromPort" -> IngressRules配列の0番目のFromPortプロパティ
+func (v *ResourceValidator) getNestedProperty(props map[string]interface{}, path string) (interface{}, bool) {
+	if path == "" {
+		return nil, false
+	}
+
+	// パスを分割（例: "IngressRules[0].FromPort" -> ["IngressRules[0]", "FromPort"]）
+	parts := strings.Split(path, ".")
+	var current interface{} = props
+
+	for _, part := range parts {
+		// 配列インデックスを確認
+		if strings.Contains(part, "[") {
+			// 配列名とインデックスを分離
+			arrayMatch := regexp.MustCompile(`^([^\[]+)\[(\d+)\]$`).FindStringSubmatch(part)
+			if len(arrayMatch) != 3 {
+				return nil, false
+			}
+
+			arrayName := arrayMatch[1]
+			index, err := strconv.Atoi(arrayMatch[2])
+			if err != nil {
+				return nil, false
+			}
+
+			// 現在のオブジェクトから配列を取得
+			switch obj := current.(type) {
+			case map[string]interface{}:
+				arr, ok := obj[arrayName]
+				if !ok {
+					return nil, false
+				}
+
+				// 配列要素にアクセス
+				switch a := arr.(type) {
+				case []interface{}:
+					if index < 0 || index >= len(a) {
+						return nil, false
+					}
+					current = a[index]
+				case []map[string]interface{}:
+					if index < 0 || index >= len(a) {
+						return nil, false
+					}
+					current = a[index]
+				case []string:
+					if index < 0 || index >= len(a) {
+						return nil, false
+					}
+					current = a[index]
+				default:
+					return nil, false
+				}
+			default:
+				return nil, false
+			}
+		} else {
+			// 通常のプロパティアクセス
+			switch obj := current.(type) {
+			case map[string]interface{}:
+				val, ok := obj[part]
+				if !ok {
+					return nil, false
+				}
+				current = val
+			default:
+				return nil, false
+			}
+		}
+	}
+
+	return current, true
+}
+
 func (v *ResourceValidator) validateProperty(actual interface{}, rule config.ValidationRule) error {
 	switch rule.Operator {
 	case "eq":
+		// 数値の場合は型変換を試みる
+		if actualNum, ok := toFloat64(actual); ok {
+			if expectedNum, ok := toFloat64(rule.Expected); ok {
+				if actualNum != expectedNum {
+					return fmt.Errorf("%s: expected %v, got %v", rule.ErrorMessage, rule.Expected, actual)
+				}
+				return nil
+			}
+		}
+
+		// それ以外の場合は通常の比較
 		if !reflect.DeepEqual(actual, rule.Expected) {
 			return fmt.Errorf("%s: expected %v, got %v", rule.ErrorMessage, rule.Expected, actual)
 		}
@@ -97,6 +185,14 @@ func (v *ResourceValidator) validateProperty(actual interface{}, rule config.Val
 	case "lt":
 		if !v.compareNumbers(actual, rule.Expected, "<") {
 			return fmt.Errorf("%s: %v should be less than %v", rule.ErrorMessage, actual, rule.Expected)
+		}
+	case "ge":
+		if !v.compareNumbers(actual, rule.Expected, ">=") {
+			return fmt.Errorf("%s: %v should be greater than or equal to %v", rule.ErrorMessage, actual, rule.Expected)
+		}
+	case "le":
+		if !v.compareNumbers(actual, rule.Expected, "<=") {
+			return fmt.Errorf("%s: %v should be less than or equal to %v", rule.ErrorMessage, actual, rule.Expected)
 		}
 	case "contains":
 		if !v.contains(actual, rule.Expected) {
@@ -118,6 +214,8 @@ func (v *ResourceValidator) validateCount(actual interface{}, rule config.Valida
 		count = len(val)
 	case map[string]interface{}:
 		count = len(val)
+	case []string:
+		count = len(val)
 	default:
 		return fmt.Errorf("cannot count non-collection type")
 	}
@@ -127,14 +225,46 @@ func (v *ResourceValidator) validateCount(actual interface{}, rule config.Valida
 		return fmt.Errorf("expected count must be an integer")
 	}
 
-	if count != expected {
-		return fmt.Errorf("%s: expected count %d, got %d", rule.ErrorMessage, expected, count)
+	// operatorが指定されていない場合はデフォルトで"eq"を使用
+	operator := rule.Operator
+	if operator == "" {
+		operator = "eq"
+	}
+
+	switch operator {
+	case "eq":
+		if count != expected {
+			return fmt.Errorf("%s: expected count %d, got %d", rule.ErrorMessage, expected, count)
+		}
+	case "ne":
+		if count == expected {
+			return fmt.Errorf("%s: count should not be %d", rule.ErrorMessage, expected)
+		}
+	case "gt":
+		if count <= expected {
+			return fmt.Errorf("%s: count %d should be greater than %d", rule.ErrorMessage, count, expected)
+		}
+	case "lt":
+		if count >= expected {
+			return fmt.Errorf("%s: count %d should be less than %d", rule.ErrorMessage, count, expected)
+		}
+	case "ge":
+		if count < expected {
+			return fmt.Errorf("%s: count %d should be greater than or equal to %d", rule.ErrorMessage, count, expected)
+		}
+	case "le":
+		if count > expected {
+			return fmt.Errorf("%s: count %d should be less than or equal to %d", rule.ErrorMessage, count, expected)
+		}
+	default:
+		return fmt.Errorf("unsupported operator for count: %s", operator)
 	}
 
 	return nil
 }
 
 func (v *ResourceValidator) validateCustom(props map[string]interface{}, rule config.ValidationRule) error {
+	// カスタムバリデーションは現在使用しない
 	return nil
 }
 
@@ -189,6 +319,20 @@ func toFloat64(val interface{}) (float64, bool) {
 	case int64:
 		return float64(v), true
 	case int32:
+		return float64(v), true
+	case int16:
+		return float64(v), true
+	case int8:
+		return float64(v), true
+	case uint:
+		return float64(v), true
+	case uint64:
+		return float64(v), true
+	case uint32:
+		return float64(v), true
+	case uint16:
+		return float64(v), true
+	case uint8:
 		return float64(v), true
 	default:
 		return 0, false
@@ -283,15 +427,81 @@ func (v *ResourceValidator) checkSecurityGroup(ctx context.Context, sgName strin
 	var ingressRules []map[string]interface{}
 	for _, rule := range sg.IpPermissions {
 		ingressRule := map[string]interface{}{
-			"FromPort":   rule.FromPort,
-			"ToPort":     rule.ToPort,
 			"IpProtocol": rule.IpProtocol,
 		}
+
+		// ポートをデリファレンスして格納
+		if rule.FromPort != nil {
+			ingressRule["FromPort"] = *rule.FromPort
+		}
+		if rule.ToPort != nil {
+			ingressRule["ToPort"] = *rule.ToPort
+		}
+
+		// CIDRブロックを追加
+		if len(rule.IpRanges) > 0 {
+			var cidrs []string
+			for _, ipRange := range rule.IpRanges {
+				if ipRange.CidrIp != nil {
+					cidrs = append(cidrs, *ipRange.CidrIp)
+				}
+			}
+			ingressRule["CidrBlocks"] = cidrs
+		}
+
+		// ソースセキュリティグループを追加
+		if len(rule.UserIdGroupPairs) > 0 {
+			var sourceGroups []string
+			var sourceGroupNames []string
+
+			for _, group := range rule.UserIdGroupPairs {
+				if group.GroupId != nil {
+					sourceGroups = append(sourceGroups, *group.GroupId)
+
+					// セキュリティグループIDからNameタグを取得
+					sgName, err := v.getSecurityGroupName(ctx, *group.GroupId)
+					if err == nil && sgName != "" {
+						sourceGroupNames = append(sourceGroupNames, sgName)
+					}
+				}
+			}
+			ingressRule["SourceSecurityGroups"] = sourceGroups
+			if len(sourceGroupNames) > 0 {
+				ingressRule["SourceSecurityGroupNames"] = sourceGroupNames
+			}
+		}
+
 		ingressRules = append(ingressRules, ingressRule)
 	}
+
 	props["IngressRules"] = ingressRules
 
 	return true, props, nil
+}
+
+// getSecurityGroupName はセキュリティグループIDからNameタグを取得する
+func (v *ResourceValidator) getSecurityGroupName(ctx context.Context, sgID string) (string, error) {
+	input := &ec2.DescribeSecurityGroupsInput{
+		GroupIds: []string{sgID},
+	}
+
+	result, err := v.awsClient.EC2.DescribeSecurityGroups(ctx, input)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.SecurityGroups) == 0 {
+		return "", fmt.Errorf("security group not found: %s", sgID)
+	}
+
+	sg := result.SecurityGroups[0]
+	for _, tag := range sg.Tags {
+		if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
+			return *tag.Value, nil
+		}
+	}
+
+	return "", nil
 }
 
 func (v *ResourceValidator) checkInternetGateway(ctx context.Context, igwName string) (bool, map[string]interface{}, error) {

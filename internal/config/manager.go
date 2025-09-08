@@ -45,7 +45,29 @@ func (m *Manager) LoadResourceConfig(resourceType string) (*ResourceConfig, erro
 		return config, nil
 	}
 
-	filename := filepath.Join("internal", "config", "configs", "resources", fmt.Sprintf("%s.yaml", resourceType))
+	// リソースタイプからファイル名にマッピング
+	fileMap := map[string]string{
+		"AWS::EC2::VPC":             "vpc.yaml",
+		"AWS::EC2::Subnet":          "subnet.yaml",
+		"AWS::EC2::SecurityGroup":   "security_group.yaml",
+		"AWS::EC2::InternetGateway": "internet_gateway.yaml",
+		"AWS::ECR::Repository":      "ecr.yaml",
+		"AWS::ECS::Cluster":         "ecs.yaml",
+		"AWS::ECS::TaskDefinition":  "ecs.yaml",
+		"AWS::ECS::Service":         "ecs.yaml",
+	}
+
+	yamlFile, ok := fileMap[resourceType]
+	if !ok {
+		// マッピングがない場合はデフォルトで空のルールを返す
+		m.resources[resourceType] = &ResourceConfig{
+			Type:            resourceType,
+			ValidationRules: []ValidationRule{},
+		}
+		return m.resources[resourceType], nil
+	}
+
+	filename := filepath.Join("internal", "config", "configs", "resources", yamlFile)
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read resource config file: %w", err)
