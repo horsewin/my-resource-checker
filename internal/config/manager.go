@@ -51,6 +51,7 @@ func (m *Manager) LoadResourceConfig(resourceType string) (*ResourceConfig, erro
 		"AWS::EC2::Subnet":          "subnet.yaml",
 		"AWS::EC2::SecurityGroup":   "security_group.yaml",
 		"AWS::EC2::InternetGateway": "internet_gateway.yaml",
+		"AWS::EC2::VPCEndpoint":     "vpce.yaml",
 		"AWS::ECR::Repository":      "ecr.yaml",
 		"AWS::ECS::Cluster":         "ecs.yaml",
 		"AWS::ECS::TaskDefinition":  "ecs.yaml",

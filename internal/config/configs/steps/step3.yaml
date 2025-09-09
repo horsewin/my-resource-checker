@@ -4,32 +4,30 @@ description: "VPC Endpoints for ECR, S3, and CloudWatch Logs"
 cloudformation_stacks: []
 resources:
   - type: "AWS::EC2::VPCEndpoint"
-    identifier: "vpce-ecr-api"
-    name: "sbcntr-vpce-ecr-api"
+    name: "sbcntr-ecr-api"
     required: true
     validation_rules:
-      - "vpce_service_name_check"
-      - "vpce_attached_to_vpc"
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
   - type: "AWS::EC2::VPCEndpoint"
-    identifier: "vpce-ecr-dkr"
-    name: "sbcntr-vpce-ecr-dkr"
+    name: "sbcntr-ecr-dkr"
     required: true
     validation_rules:
-      - "vpce_service_name_check"
-      - "vpce_attached_to_vpc"
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
   - type: "AWS::EC2::VPCEndpoint"
-    identifier: "vpce-s3"
-    name: "sbcntr-vpce-s3"
+    name: "sbcntr-s3"
     required: true
     validation_rules:
-      - "vpce_service_name_check"
-      - "vpce_attached_to_vpc"
+      - "vpce_attached_to_correct_vpc"
   - type: "AWS::EC2::VPCEndpoint"
-    identifier: "vpce-logs"
-    name: "sbcntr-vpce-logs"
+    name: "sbcntr-logs"
     required: true
     validation_rules:
-      - "vpce_service_name_check"
-      - "vpce_attached_to_vpc"
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
 dependencies:
   - 1

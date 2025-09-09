@@ -75,8 +75,6 @@ func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rul
 		}
 	case "count":
 		return v.validateCount(actualValue, rule)
-	case "custom":
-		return v.validateCustom(actualProps, rule)
 	}
 
 	return nil
@@ -263,9 +261,30 @@ func (v *ResourceValidator) validateCount(actual interface{}, rule config.Valida
 	return nil
 }
 
-func (v *ResourceValidator) validateCustom(props map[string]interface{}, rule config.ValidationRule) error {
-	// カスタムバリデーションは現在使用しない
-	return nil
+// validateVPCEndpointServiceName はVPCエンドポイントのサービス名が正しいかチェック
+func (v *ResourceValidator) validateVPCEndpointServiceName(props map[string]interface{}) error {
+	serviceName, ok := props["ServiceName"].(string)
+	if !ok {
+		return fmt.Errorf("Service name not found")
+	}
+
+	// サービス名のパターンチェック
+	// 例: com.amazonaws.ap-northeast-1.ecr.api
+	validPatterns := []string{
+		"com.amazonaws.ap-northeast-1.ecr.api",
+		"com.amazonaws.ap-northeast-1.ecr.dkr",
+		"com.amazonaws.ap-northeast-1.s3",
+		"com.amazonaws.ap-northeast-1.logs",
+		"com.amazonaws.vpce.ap-northeast-1.", // VPCエンドポイントサービス
+	}
+
+	for _, pattern := range validPatterns {
+		if strings.Contains(serviceName, pattern) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Invalid service name: %s. Expected AWS service endpoint", serviceName)
 }
 
 func (v *ResourceValidator) compareNumbers(actual, expected interface{}, operator string) bool {
@@ -504,6 +523,31 @@ func (v *ResourceValidator) getSecurityGroupName(ctx context.Context, sgID strin
 	return "", nil
 }
 
+// getVPCName はVPC IDからNameタグを取得する
+func (v *ResourceValidator) getVPCName(ctx context.Context, vpcID string) (string, error) {
+	input := &ec2.DescribeVpcsInput{
+		VpcIds: []string{vpcID},
+	}
+
+	result, err := v.awsClient.EC2.DescribeVpcs(ctx, input)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Vpcs) == 0 {
+		return "", fmt.Errorf("vpc not found: %s", vpcID)
+	}
+
+	vpc := result.Vpcs[0]
+	for _, tag := range vpc.Tags {
+		if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
+			return *tag.Value, nil
+		}
+	}
+
+	return "", nil
+}
+
 func (v *ResourceValidator) checkInternetGateway(ctx context.Context, igwName string) (bool, map[string]interface{}, error) {
 	input := &ec2.DescribeInternetGatewaysInput{
 		Filters: []ec2types.Filter{
@@ -559,6 +603,58 @@ func (v *ResourceValidator) checkVPCEndpoint(ctx context.Context, endpointName s
 		"VpcEndpointId": *endpoint.VpcEndpointId,
 		"ServiceName":   *endpoint.ServiceName,
 		"VpcId":         *endpoint.VpcId,
+	}
+
+	// VPC IDからNameタグを取得
+	if endpoint.VpcId != nil {
+		vpcName, err := v.getVPCName(ctx, *endpoint.VpcId)
+		if err == nil && vpcName != "" {
+			props["VpcName"] = vpcName
+		}
+	}
+
+	// セキュリティグループを追加
+	if len(endpoint.Groups) > 0 {
+		var securityGroups []string
+		var securityGroupNames []string
+		for _, group := range endpoint.Groups {
+			if group.GroupId != nil {
+				securityGroups = append(securityGroups, *group.GroupId)
+				// セキュリティグループIDからNameタグを取得
+				sgName, err := v.getSecurityGroupName(ctx, *group.GroupId)
+				if err == nil && sgName != "" {
+					securityGroupNames = append(securityGroupNames, sgName)
+				}
+			}
+		}
+		props["SecurityGroups"] = securityGroups
+		if len(securityGroupNames) > 0 {
+			props["SecurityGroupNames"] = securityGroupNames
+		}
+	}
+
+	// VPCエンドポイントタイプを追加
+	props["VpcEndpointType"] = string(endpoint.VpcEndpointType)
+
+	// DNS設定を追加（Interface型エンドポイントの場合）
+	if string(endpoint.VpcEndpointType) == "Interface" {
+		// Interface型の場合、デフォルトでDNSは有効
+		props["DnsEnabled"] = true
+
+		if endpoint.DnsOptions != nil {
+			// DnsRecordIpTypeがある場合は追加
+			if endpoint.DnsOptions.DnsRecordIpType != "" {
+				props["DnsRecordIpType"] = string(endpoint.DnsOptions.DnsRecordIpType)
+			}
+		}
+
+		// PrivateDnsEnabledは別フィールドにある
+		if endpoint.PrivateDnsEnabled != nil {
+			props["PrivateDnsEnabled"] = *endpoint.PrivateDnsEnabled
+		}
+	} else {
+		// Gateway型の場合はDNS設定なし
+		props["DnsEnabled"] = false
 	}
 
 	return true, props, nil
