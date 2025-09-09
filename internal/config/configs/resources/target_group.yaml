@@ -1,0 +1,46 @@
+type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+validation_rules:
+  # ターゲットグループのプロトコルチェック
+  - name: "tg_protocol_check"
+    type: "property"
+    property: "Protocol"
+    expected: "HTTP"
+    operator: "eq"
+    error_message: "Target Group protocol should be HTTP"
+    severity: "error"
+
+  # ターゲットグループのポートチェック
+  - name: "tg_port_check"
+    type: "property"
+    property: "Port"
+    expected: 80
+    operator: "eq"
+    error_message: "Target Group port should be 80"
+    severity: "error"
+
+  # ターゲットグループのタイプチェック
+  - name: "tg_target_type_check"
+    type: "property"
+    property: "TargetType"
+    expected: "ip"
+    operator: "eq"
+    error_message: "Target Group target type should be 'ip' for Fargate"
+    severity: "error"
+
+  # ヘルスチェックが有効かチェック
+  - name: "tg_health_check_enabled"
+    type: "property"
+    property: "HealthCheckEnabled"
+    expected: true
+    operator: "eq"
+    error_message: "Target Group health check should be enabled"
+    severity: "error"
+
+  # ヘルスチェックプロトコル
+  - name: "tg_health_check_protocol"
+    type: "property"
+    property: "HealthCheckProtocol"
+    expected: "HTTP"
+    operator: "eq"
+    error_message: "Target Group health check protocol should be HTTP"
+    severity: "warning"

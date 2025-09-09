@@ -788,8 +788,46 @@ func (v *ResourceValidator) checkLoadBalancer(ctx context.Context, albName strin
 	alb := result.LoadBalancers[0]
 	props := map[string]interface{}{
 		"LoadBalancerName": *alb.LoadBalancerName,
-		"State":            string(alb.State.Code),
 		"Type":             string(alb.Type),
+	}
+
+	// State.Codeをネストされたプロパティとして追加
+	if alb.State != nil {
+		props["State"] = map[string]interface{}{
+			"Code": string(alb.State.Code),
+		}
+	}
+
+	// Schemeを追加
+	if alb.Scheme != "" {
+		props["Scheme"] = string(alb.Scheme)
+	}
+
+	// VPCを追加
+	if alb.VpcId != nil {
+		props["VpcId"] = *alb.VpcId
+	}
+
+	// セキュリティグループを追加
+	if len(alb.SecurityGroups) > 0 {
+		props["SecurityGroups"] = alb.SecurityGroups
+
+		// セキュリティグループ名も追加
+		var securityGroupNames []string
+		for _, sgID := range alb.SecurityGroups {
+			sgName, err := v.getSecurityGroupName(ctx, sgID)
+			if err == nil && sgName != "" {
+				securityGroupNames = append(securityGroupNames, sgName)
+			}
+		}
+		if len(securityGroupNames) > 0 {
+			props["SecurityGroupNames"] = securityGroupNames
+		}
+	}
+
+	// アベイラビリティゾーンを追加
+	if len(alb.AvailabilityZones) > 0 {
+		props["AvailabilityZones"] = alb.AvailabilityZones
 	}
 
 	return true, props, nil
@@ -814,6 +852,36 @@ func (v *ResourceValidator) checkTargetGroup(ctx context.Context, tgName string)
 		"TargetGroupName": *tg.TargetGroupName,
 		"Protocol":        string(tg.Protocol),
 		"Port":            *tg.Port,
+	}
+
+	// TargetTypeを追加
+	if tg.TargetType != "" {
+		props["TargetType"] = string(tg.TargetType)
+	}
+
+	// VPCを追加
+	if tg.VpcId != nil {
+		props["VpcId"] = *tg.VpcId
+	}
+
+	// ヘルスチェック設定を追加
+	if tg.HealthCheckEnabled != nil {
+		props["HealthCheckEnabled"] = *tg.HealthCheckEnabled
+	}
+
+	// ヘルスチェックプロトコルを追加
+	if tg.HealthCheckProtocol != "" {
+		props["HealthCheckProtocol"] = string(tg.HealthCheckProtocol)
+	}
+
+	// ヘルスチェックパスを追加
+	if tg.HealthCheckPath != nil {
+		props["HealthCheckPath"] = *tg.HealthCheckPath
+	}
+
+	// ヘルスチェックポートを追加
+	if tg.HealthCheckPort != nil {
+		props["HealthCheckPort"] = *tg.HealthCheckPort
 	}
 
 	return true, props, nil

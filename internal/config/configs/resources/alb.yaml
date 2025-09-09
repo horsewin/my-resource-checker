@@ -1,0 +1,71 @@
+type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+validation_rules:
+  # ALBのタイプチェック
+  - name: "alb_type_check"
+    type: "property"
+    property: "Type"
+    expected: "application"
+    operator: "eq"
+    error_message: "Load Balancer type should be 'application'"
+    severity: "error"
+
+  # 内部向けALBのスキームチェック
+  - name: "alb_scheme_internal"
+    type: "property"
+    property: "Scheme"
+    expected: "internal"
+    operator: "eq"
+    error_message: "Internal ALB scheme should be 'internal'"
+    severity: "error"
+
+  # インターネット向けALBのスキームチェック
+  - name: "alb_scheme_internet_facing"
+    type: "property"
+    property: "Scheme"
+    expected: "internet-facing"
+    operator: "eq"
+    error_message: "Frontend ALB scheme should be 'internet-facing'"
+    severity: "error"
+
+  # ALBの状態チェック
+  - name: "alb_state_active"
+    type: "property"
+    property: "State.Code"
+    expected: "active"
+    operator: "eq"
+    error_message: "ALB should be in active state"
+    severity: "error"
+
+  # ALBがVPCにアタッチされているかチェック
+  - name: "alb_vpc_attached"
+    type: "exists"
+    property: "VpcId"
+    error_message: "ALB must be attached to a VPC"
+    severity: "error"
+
+  # ALBにセキュリティグループが設定されているかチェック
+  - name: "alb_security_group_check"
+    type: "count"
+    property: "SecurityGroups"
+    expected: 1
+    operator: "ge"
+    error_message: "ALB should have at least one security group attached"
+    severity: "error"
+
+  # ALBにサブネットが設定されているかチェック（最低2つ）
+  - name: "alb_subnet_count"
+    type: "count"
+    property: "AvailabilityZones"
+    expected: 2
+    operator: "ge"
+    error_message: "ALB should be deployed in at least 2 availability zones"
+    severity: "error"
+
+  # ALBにsbcntr-ingressセキュリティグループが設定されているかチェック
+  - name: "alb_ingress_security_group"
+    type: "property"
+    property: "SecurityGroupNames[0]"
+    expected: "sbcntr-ingress"
+    operator: "eq"
+    error_message: "ALB should have sbcntr-ingress security group attached"
+    severity: "error"
