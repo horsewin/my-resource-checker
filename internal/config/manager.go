@@ -54,8 +54,8 @@ func (m *Manager) LoadResourceConfig(resourceType string) (*ResourceConfig, erro
 		"AWS::EC2::VPCEndpoint":                     "vpce.yaml",
 		"AWS::ECR::Repository":                      "ecr.yaml",
 		"AWS::ECS::Cluster":                         "ecs.yaml",
-		"AWS::ECS::TaskDefinition":                  "ecs.yaml",
-		"AWS::ECS::Service":                         "ecs.yaml",
+		"AWS::ECS::TaskDefinition":                  "ecs_task_definition.yaml",
+		"AWS::ECS::Service":                         "ecs_service.yaml",
 		"AWS::ElasticLoadBalancingV2::LoadBalancer": "alb.yaml",
 		"AWS::ElasticLoadBalancingV2::TargetGroup":  "target_group.yaml",
 	}

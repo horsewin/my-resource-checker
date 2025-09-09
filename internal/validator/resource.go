@@ -523,6 +523,31 @@ func (v *ResourceValidator) getSecurityGroupName(ctx context.Context, sgID strin
 	return "", nil
 }
 
+// getSubnetName はサブネットIDからNameタグを取得する
+func (v *ResourceValidator) getSubnetName(ctx context.Context, subnetID string) (string, error) {
+	input := &ec2.DescribeSubnetsInput{
+		SubnetIds: []string{subnetID},
+	}
+
+	result, err := v.awsClient.EC2.DescribeSubnets(ctx, input)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Subnets) == 0 {
+		return "", fmt.Errorf("subnet not found: %s", subnetID)
+	}
+
+	subnet := result.Subnets[0]
+	for _, tag := range subnet.Tags {
+		if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
+			return *tag.Value, nil
+		}
+	}
+
+	return "", nil
+}
+
 // getVPCName はVPC IDからNameタグを取得する
 func (v *ResourceValidator) getVPCName(ctx context.Context, vpcID string) (string, error) {
 	input := &ec2.DescribeVpcsInput{
@@ -734,6 +759,34 @@ func (v *ResourceValidator) checkTaskDefinition(ctx context.Context, taskDefName
 		"Status":   string(taskDef.Status),
 	}
 
+	// ContainerDefinitionsを追加
+	if len(taskDef.ContainerDefinitions) > 0 {
+		props["ContainerDefinitions"] = taskDef.ContainerDefinitions
+	}
+
+	// CPUとメモリの設定も追加
+	if taskDef.Cpu != nil {
+		props["Cpu"] = *taskDef.Cpu
+	}
+	if taskDef.Memory != nil {
+		props["Memory"] = *taskDef.Memory
+	}
+
+	// ネットワークモード
+	if taskDef.NetworkMode != "" {
+		props["NetworkMode"] = string(taskDef.NetworkMode)
+	}
+
+	// 実行ロール
+	if taskDef.ExecutionRoleArn != nil {
+		props["ExecutionRoleArn"] = *taskDef.ExecutionRoleArn
+	}
+
+	// タスクロール
+	if taskDef.TaskRoleArn != nil {
+		props["TaskRoleArn"] = *taskDef.TaskRoleArn
+	}
+
 	return true, props, nil
 }
 
@@ -763,6 +816,56 @@ func (v *ResourceValidator) checkECSService(ctx context.Context, serviceName str
 
 			props["DesiredCount"] = service.DesiredCount
 			props["RunningCount"] = service.RunningCount
+
+			// ネットワーク構成からセキュリティグループとサブネットを取得
+			if service.NetworkConfiguration != nil &&
+				service.NetworkConfiguration.AwsvpcConfiguration != nil {
+				awsvpcConfig := service.NetworkConfiguration.AwsvpcConfiguration
+
+				// セキュリティグループを追加
+				if len(awsvpcConfig.SecurityGroups) > 0 {
+					props["SecurityGroups"] = awsvpcConfig.SecurityGroups
+
+					// セキュリティグループ名も追加
+					var securityGroupNames []string
+					for _, sgID := range awsvpcConfig.SecurityGroups {
+						sgName, err := v.getSecurityGroupName(ctx, sgID)
+						if err == nil && sgName != "" {
+							securityGroupNames = append(securityGroupNames, sgName)
+						}
+					}
+					if len(securityGroupNames) > 0 {
+						props["SecurityGroupNames"] = securityGroupNames
+					}
+				}
+
+				// サブネットを追加
+				if len(awsvpcConfig.Subnets) > 0 {
+					props["Subnets"] = awsvpcConfig.Subnets
+
+					// サブネット名も追加
+					var subnetNames []string
+					for _, subnetID := range awsvpcConfig.Subnets {
+						subnetName, err := v.getSubnetName(ctx, subnetID)
+						if err == nil && subnetName != "" {
+							subnetNames = append(subnetNames, subnetName)
+						}
+					}
+					if len(subnetNames) > 0 {
+						props["SubnetNames"] = subnetNames
+					}
+				}
+			}
+
+			// ロードバランサー情報を追加
+			if len(service.LoadBalancers) > 0 {
+				props["LoadBalancers"] = service.LoadBalancers
+			}
+
+			// ヘルスチェックグレースピリオド
+			if service.HealthCheckGracePeriodSeconds != nil {
+				props["HealthCheckGracePeriodSeconds"] = *service.HealthCheckGracePeriodSeconds
+			}
 
 			return true, props, nil
 		}

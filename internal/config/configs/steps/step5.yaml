@@ -4,32 +4,36 @@ description: "ECS Task Definitions and Services"
 cloudformation_stacks: []
 resources:
   - type: "AWS::ECS::TaskDefinition"
-    identifier: "sbcntr-backend"
-    name: "sbcntr-backend"
+    name: "sbcntr-backend-app"
     required: true
     validation_rules:
       - "task_def_family_check"
       - "task_def_container_check"
   - type: "AWS::ECS::TaskDefinition"
-    identifier: "sbcntr-frontend"
-    name: "sbcntr-frontend"
+    name: "sbcntr-frontend-app"
     required: true
     validation_rules:
       - "task_def_family_check"
       - "task_def_container_check"
   - type: "AWS::ECS::Service"
-    identifier: "sbcntr-backend-service"
-    name: "sbcntr-backend-service"
+    name: "sbcntr-backend-app"
     required: true
     validation_rules:
       - "ecs_service_running"
       - "ecs_service_desired_count"
+      - "ecs_service_security_group_check"
+      - "ecs_service_backend_security_group"
+      - "ecs_service_subnet_check"
+      - "ecs_service_private_subnet_check"
   - type: "AWS::ECS::Service"
-    identifier: "sbcntr-frontend-service"
-    name: "sbcntr-frontend-service"
+    name: "sbcntr-frontend-app"
     required: true
     validation_rules:
       - "ecs_service_running"
       - "ecs_service_desired_count"
+      - "ecs_service_security_group_check"
+      - "ecs_service_frontend_security_group"
+      - "ecs_service_subnet_check"
+      - "ecs_service_private_subnet_check"
 dependencies:
   - 4

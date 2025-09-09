@@ -1,0 +1,63 @@
+type: "AWS::ECS::TaskDefinition"
+validation_rules:
+  # タスク定義のファミリーチェック
+  - name: "task_def_family_check"
+    type: "property"
+    property: "Family"
+    expected: "sbcntr-"
+    operator: "contains"
+    error_message: "Task definition family should start with sbcntr-"
+    severity: "error"
+
+  # コンテナ定義が存在するかチェック
+  - name: "task_def_container_check"
+    type: "exists"
+    property: "ContainerDefinitions"
+    error_message: "Task definition should have container definitions"
+    severity: "error"
+
+  # コンテナ数のチェック
+  - name: "task_def_container_count"
+    type: "count"
+    property: "ContainerDefinitions"
+    expected: 1
+    operator: "ge"
+    error_message: "Task definition should have at least one container definition"
+    severity: "error"
+
+  # ネットワークモードのチェック
+  - name: "task_def_network_mode"
+    type: "property"
+    property: "NetworkMode"
+    expected: "awsvpc"
+    operator: "eq"
+    error_message: "Task definition network mode should be awsvpc for Fargate"
+    severity: "error"
+
+  # CPU設定のチェック
+  - name: "task_def_cpu_check"
+    type: "exists"
+    property: "Cpu"
+    error_message: "Task definition should have CPU configured"
+    severity: "error"
+
+  # メモリ設定のチェック
+  - name: "task_def_memory_check"
+    type: "exists"
+    property: "Memory"
+    error_message: "Task definition should have Memory configured"
+    severity: "error"
+
+  # 実行ロールのチェック
+  - name: "task_def_execution_role"
+    type: "exists"
+    property: "ExecutionRoleArn"
+    error_message: "Task definition should have execution role configured"
+    severity: "error"
+
+  # タスクロールのチェック
+  - name: "task_def_task_role"
+    type: "exists"
+    property: "TaskRoleArn"
+    error_message: "Task definition should have task role configured"
+    severity: "warning"
