@@ -14,7 +14,7 @@ validation_rules:
     type: "property"
     property: "DesiredCount"
     expected: 1
-    operator: "gt"
+    operator: "gte"
     error_message: "ECS service should have at least 1 desired task"
     severity: "error"
 
@@ -70,7 +70,7 @@ validation_rules:
 
     expected: "sbcntr-private-app-"
     operator: "contains"
-    error_message: "ECS service should be deployed in sbcntr-app subnets"
+    error_message: "ECS service should be deployed in/ sbcntr-app subnets"
     severity: "error"
 
   # ヘルスチェックグレースピリオドの設定チェック
