@@ -58,13 +58,13 @@ resources:
       - "subnet_cidr_check"
       - "subnet_availability_zone"
   - type: "AWS::EC2::Subnet"
-    name: "sbcntr-private-management-a"
+    name: "sbcntr-public-management-a"
     required: true
     validation_rules:
       - "subnet_cidr_check"
       - "subnet_availability_zone"
   - type: "AWS::EC2::Subnet"
-    name: "sbcntr-private-management-c"
+    name: "sbcntr-public-management-c"
     required: true
     validation_rules:
       - "subnet_cidr_check"
@@ -92,7 +92,7 @@ resources:
     required: true
     validation_rules: []
   - type: "AWS::EC2::SecurityGroup"
-    name: "sbcntr-private-egress"
+    name: "sbcntr-vpce"
     required: true
     validation_rules: []
   - type: "AWS::EC2::SecurityGroup"
