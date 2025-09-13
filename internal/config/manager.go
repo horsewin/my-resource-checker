@@ -58,6 +58,9 @@ func (m *Manager) LoadResourceConfig(resourceType string) (*ResourceConfig, erro
 		"AWS::ECS::Service":                         "ecs_service.yaml",
 		"AWS::ElasticLoadBalancingV2::LoadBalancer": "alb.yaml",
 		"AWS::ElasticLoadBalancingV2::TargetGroup":  "target_group.yaml",
+		"AWS::RDS::DBCluster":                       "aurora.yaml",
+		"AWS::RDS::DBInstance":                      "rds_instance.yaml",
+		"AWS::RDS::DBSubnetGroup":                   "rds_subnet_group.yaml",
 	}
 
 	yamlFile, ok := fileMap[resourceType]

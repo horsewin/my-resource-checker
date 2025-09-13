@@ -13,7 +13,7 @@ validation_rules:
   - name: "vpce_security_group_check"
     type: "property"
     property: "SecurityGroupNames[0]"
-    expected: "sbcntr-private-egress"
+    expected: "sbcntr-vpce"
     operator: "eq"
     error_message: "Interface VPC Endpoint should have sbcntr-private-egress security group attached"
     severity: "error"

@@ -54,6 +54,12 @@ func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceTyp
 		return v.checkLoadBalancer(ctx, resourceName)
 	case "AWS::ElasticLoadBalancingV2::TargetGroup":
 		return v.checkTargetGroup(ctx, resourceName)
+	case "AWS::RDS::DBCluster":
+		return v.checkDBCluster(ctx, resourceName)
+	case "AWS::RDS::DBInstance":
+		return v.checkDBInstance(ctx, resourceName)
+	case "AWS::RDS::DBSubnetGroup":
+		return v.checkDBSubnetGroup(ctx, resourceName)
 	default:
 		return v.checkCloudControlResource(ctx, resourceType, resourceName)
 	}
@@ -62,6 +68,18 @@ func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceTyp
 func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rule config.ValidationRule) error {
 	// ネストされたプロパティや配列アクセスに対応
 	actualValue, exists := v.getNestedProperty(actualProps, rule.Property)
+
+	// デバッグ: db_instance_security_group_checkの場合のみ詳細を出力
+	if rule.Name == "db_instance_security_group_check" {
+		fmt.Printf("\n=== DEBUG: Validating Security Group ===\n")
+		fmt.Printf("Rule Name: %s\n", rule.Name)
+		fmt.Printf("Property Path: %s\n", rule.Property)
+		fmt.Printf("Expected: %v\n", rule.Expected)
+		fmt.Printf("Actual Value: %v (exists: %v, type: %T)\n", actualValue, exists, actualValue)
+		fmt.Printf("Operator: %s\n", rule.Operator)
+		fmt.Printf("======================================\n\n")
+	}
+
 	if !exists && rule.Type == "exists" {
 		return fmt.Errorf("%s: property '%s' not found", rule.ErrorMessage, rule.Property)
 	}
@@ -199,6 +217,12 @@ func (v *ResourceValidator) validateProperty(actual interface{}, rule config.Val
 	case "regex":
 		if !v.matchRegex(actual, rule.Expected) {
 			return fmt.Errorf("%s: %v does not match pattern %v", rule.ErrorMessage, actual, rule.Expected)
+		}
+	case "starts_with":
+		actualStr := fmt.Sprintf("%v", actual)
+		expectedStr := fmt.Sprintf("%v", rule.Expected)
+		if !strings.HasPrefix(actualStr, expectedStr) {
+			return fmt.Errorf("%s: %v should start with %v", rule.ErrorMessage, actual, rule.Expected)
 		}
 	}
 
@@ -988,6 +1012,78 @@ func (v *ResourceValidator) checkTargetGroup(ctx context.Context, tgName string)
 	}
 
 	return true, props, nil
+}
+
+func (v *ResourceValidator) checkDBCluster(ctx context.Context, clusterIdentifier string) (bool, map[string]interface{}, error) {
+	resource, err := v.awsClient.GetResource(ctx, "AWS::RDS::DBCluster", clusterIdentifier)
+	if err != nil {
+		return false, nil, nil
+	}
+
+	return true, resource.Properties, nil
+}
+
+func (v *ResourceValidator) checkDBInstance(ctx context.Context, instanceIdentifier string) (bool, map[string]interface{}, error) {
+	resource, err := v.awsClient.GetResource(ctx, "AWS::RDS::DBInstance", instanceIdentifier)
+	if err != nil {
+		return false, nil, nil
+	}
+
+	// VPCSecurityGroupsのIDをNameタグに変換
+	if vpcSgIds, ok := resource.Properties["VPCSecurityGroups"]; ok {
+		if sgArray, ok := vpcSgIds.([]interface{}); ok {
+			var sgNames []interface{}
+			fmt.Printf("\n=== Converting Security Group IDs to Names ===\n")
+			for _, sgId := range sgArray {
+				if sgIdStr, ok := sgId.(string); ok {
+					// セキュリティグループIDからNameタグを取得
+					sgName, err := v.getSecurityGroupName(ctx, sgIdStr)
+					if err == nil && sgName != "" {
+						fmt.Printf("  %s -> %s\n", sgIdStr, sgName)
+						sgNames = append(sgNames, sgName)
+					} else {
+						// Nameタグが取得できない場合はIDをそのまま使用
+						fmt.Printf("  %s -> (no Name tag, using ID)\n", sgIdStr)
+						sgNames = append(sgNames, sgIdStr)
+					}
+				}
+			}
+			fmt.Printf("=================================\n")
+			// VPCSecurityGroupsをNameタグの配列に置き換え
+			if len(sgNames) > 0 {
+				resource.Properties["VPCSecurityGroups"] = sgNames
+			}
+		}
+	}
+
+	// デバッグ: DBインスタンスの全プロパティを出力
+	fmt.Printf("\n=== DEBUG: DBInstance '%s' All Properties ===\n", instanceIdentifier)
+	for key, value := range resource.Properties {
+		// 値の型によって出力を調整
+		switch v := value.(type) {
+		case []interface{}:
+			fmt.Printf("%s: [array with %d items] (type: %T)\n", key, len(v), value)
+			for i, item := range v {
+				fmt.Printf("  [%d]: %v\n", i, item)
+			}
+		case map[string]interface{}:
+			fmt.Printf("%s: [map] (type: %T)\n", key, value)
+		default:
+			fmt.Printf("%s: %v (type: %T)\n", key, value, value)
+		}
+	}
+	fmt.Printf("=====================================\n\n")
+
+	return true, resource.Properties, nil
+}
+
+func (v *ResourceValidator) checkDBSubnetGroup(ctx context.Context, subnetGroupName string) (bool, map[string]interface{}, error) {
+	resource, err := v.awsClient.GetResource(ctx, "AWS::RDS::DBSubnetGroup", subnetGroupName)
+	if err != nil {
+		return false, nil, nil
+	}
+
+	return true, resource.Properties, nil
 }
 
 func (v *ResourceValidator) checkCloudControlResource(ctx context.Context, resourceType, resourceName string) (bool, map[string]interface{}, error) {

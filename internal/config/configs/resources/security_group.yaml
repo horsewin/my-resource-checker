@@ -50,3 +50,21 @@ validation_rules:
     operator: "eq"
     error_message: "Backend security group should reference sbcntr-frontend-app security group as source"
     severity: "error"
+
+  # DB用セキュリティグループのPostgresポート確認
+  - name: "sg_db_postgres_port"
+    type: "property"
+    property: "IngressRules[0].FromPort"
+    expected: 5432
+    operator: "eq"
+    error_message: "DB security group should allow Postgres port 5432"
+    severity: "error"
+
+  # バックエンドからのアクセス許可確認
+  - name: "sg_db_source_sg_name"
+    type: "property"
+    property: "IngressRules[0].SourceSecurityGroupNames[0]"
+    expected: "sbcntr-backend-app"
+    operator: "eq"
+    error_message: "DB security group should allow access from sbcntr-backend-app security group"
+    severity: "error"

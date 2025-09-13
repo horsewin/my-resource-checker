@@ -1,0 +1,19 @@
+type: "AWS::RDS::DBCluster"
+validation_rules:
+  # DBクラスター識別子の確認
+  - name: "db_cluster_identifier_check"
+    type: "property"
+    property: "DBClusterIdentifier"
+    expected: "sbcntr-main"
+    operator: "eq"
+    error_message: "DB cluster identifier should be sbcntr-main"
+    severity: "error"
+
+  # DBエンジンの確認
+  - name: "db_cluster_engine_check"
+    type: "property"
+    property: "Engine"
+    expected: "aurora-postgresql"
+    operator: "eq"
+    error_message: "DB cluster engine should be aurora-postgresql"
+    severity: "warning"

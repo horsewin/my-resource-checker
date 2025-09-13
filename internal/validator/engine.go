@@ -76,14 +76,14 @@ func (e *Engine) ValidateStep(stepNumber int) (*ValidationResult, error) {
 
 func (e *Engine) ValidateAllSteps() (*ValidationSummary, error) {
 	summary := &ValidationSummary{
-		TotalSteps:   5,
+		TotalSteps:   6,
 		PassedSteps:  0,
 		FailedSteps:  0,
 		SkippedSteps: 0,
 		Results:      []ValidationResult{},
 	}
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 6; i++ {
 		result, err := e.ValidateStep(i)
 		if err != nil {
 			summary.SkippedSteps++
@@ -132,14 +132,38 @@ func (e *Engine) validateResource(ctx context.Context, resource config.ResourceD
 	result.Status = ResourceExists
 	result.Actual = actualProps
 
+	// デバッグ: DBインスタンスの検証ルールを確認
+	if resource.Type == "AWS::RDS::DBInstance" {
+		fmt.Printf("\n=== DEBUG: Validation Rules for %s ===\n", resource.Name)
+		fmt.Printf("Configured rules: %v\n", resource.ValidationRules)
+	}
+
 	for _, ruleName := range resource.ValidationRules {
 		rules, err := e.configManager.GetValidationRules(resource.Type)
 		if err != nil {
+			if resource.Type == "AWS::RDS::DBInstance" {
+				fmt.Printf("Error getting validation rules: %v\n", err)
+			}
 			continue
+		}
+
+		// デバッグ: 取得したルールを確認
+		if resource.Type == "AWS::RDS::DBInstance" {
+			fmt.Printf("Looking for rule: %s\n", ruleName)
+			fmt.Printf("Available rules: ")
+			for _, r := range rules {
+				fmt.Printf("%s ", r.Name)
+			}
+			fmt.Printf("\n")
 		}
 
 		for _, rule := range rules {
 			if rule.Name == ruleName {
+				// デバッグ: DBインスタンスのルールマッチング
+				if resource.Type == "AWS::RDS::DBInstance" {
+					fmt.Printf("Executing rule: %s\n", ruleName)
+				}
+
 				result.Expected[rule.Property] = rule.Expected
 
 				if err := validator.ValidateRule(actualProps, rule); err != nil {

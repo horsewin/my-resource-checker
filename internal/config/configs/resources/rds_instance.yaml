@@ -1,0 +1,37 @@
+type: "AWS::RDS::DBInstance"
+validation_rules:
+  # DBインスタンスの識別子確認
+  - name: "db_instance_identifier_check"
+    type: "property"
+    property: "DBInstanceIdentifier"
+    expected: "sbcntr-main-instance-1"
+    operator: "eq"
+    error_message: "DB instance identifier should be sbcntr-main-instance-1"
+    severity: "error"
+
+  # DBクラスターへの所属確認
+  - name: "db_cluster_membership_check"
+    type: "property"
+    property: "DBClusterIdentifier"
+    expected: "sbcntr-main"
+    operator: "eq"
+    error_message: "DB instance should belong to sbcntr-main cluster"
+    severity: "error"
+
+  # DBサブネットグループの確認
+  - name: "db_instance_subnet_group_check"
+    type: "property"
+    property: "DBSubnetGroupName"
+    expected: "sbcntr-main"
+    operator: "eq"
+    error_message: "DB instance should use sbcntr-main subnet group"
+    severity: "error"
+
+  # セキュリティグループの確認（バックエンドからのアクセス許可）
+  - name: "db_instance_security_group_check"
+    type: "property"
+    property: "VPCSecurityGroups[0]"
+    expected: "sbcntr-db"
+    operator: "eq"
+    error_message: "DB instance should have security group attached"
+    severity: "error"

@@ -8,12 +8,10 @@ resources:
     required: true
     validation_rules:
       - "ecr_encryption_enabled"
-      - "ecr_image_tag_mutability"
   - type: "AWS::ECR::Repository"
     name: "sbcntr-frontend-app"
     required: true
     validation_rules:
       - "ecr_encryption_enabled"
-      - "ecr_image_tag_mutability"
 dependencies:
   - 1

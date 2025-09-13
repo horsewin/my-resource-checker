@@ -1,0 +1,10 @@
+type: "AWS::RDS::DBSubnetGroup"
+validation_rules:
+  # サブネットグループ名の確認
+  - name: "db_subnet_group_name_check"
+    type: "property"
+    property: "DBSubnetGroupName"
+    expected: "sbcntr-main"
+    operator: "eqcontains"
+    error_message: "DB subnet group name should equal sbcntr-main"
+    severity: "error"

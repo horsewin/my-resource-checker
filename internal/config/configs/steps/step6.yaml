@@ -1,0 +1,40 @@
+number: 6
+name: "Database Configuration"
+description: "Aurora Database Cluster and Security Configuration"
+cloudformation_stacks: []
+resources:
+  # DBサブネットグループ
+  - type: "AWS::RDS::DBSubnetGroup"
+    name: "sbcntr-main"
+    required: true
+    validation_rules:
+      - "db_subnet_group_name_check"
+
+  # DB用セキュリティグループ
+  - type: "AWS::EC2::SecurityGroup"
+    name: "sbcntr-db"
+    required: true
+    validation_rules:
+      - "sg_db_postgres_port"
+      - "sg_db_source_sg_name"
+
+  # DBクラスター
+  - type: "AWS::RDS::DBCluster"
+    name: "sbcntr-main"
+    required: true
+    validation_rules:
+      - "db_cluster_identifier_check"
+      - "db_cluster_engine_check"
+
+  # DBインスタンス
+  - type: "AWS::RDS::DBInstance"
+    name: "sbcntr-main-instance-1"
+    required: true
+    validation_rules:
+      - "db_instance_identifier_check"
+      - "db_cluster_membership_check"
+      - "db_instance_subnet_group_check"
+      - "db_instance_security_group_check"
+
+dependencies:
+  - 5
