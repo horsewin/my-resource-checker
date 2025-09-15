@@ -81,6 +81,7 @@ chmod +x sbcntr-validator
 - ECSクラスター、ALB、ターゲットグループの検証
 - EcsInfrastructureRoleForLoadBalancers ロールの存在確認
 - AmazonECSInfrastructureRolePolicyForLoadBalancersポリシーのアタッチメント確認
+- 書籍における【XXX節：ECSの構築】までの状態を検証
 
 ### Step 5: ECSサービスデプロイ
 - タスク定義とECSサービスの検証
