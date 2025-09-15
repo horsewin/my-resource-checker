@@ -9,7 +9,7 @@ resources:
     validation_rules:
       - "ecs_cluster_active"
   - type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
-    name: "sbcntr-frontend-app"
+    name: "sbcntr-ingress"
     required: true
     validation_rules:
       - "alb_type_check"
@@ -17,14 +17,14 @@ resources:
       - "alb_state_active"
       - "alb_ingress_security_group"
   - type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-    name: "sbcntr-frontend-app-blue"
+    name: "sbcntr-frontapp-blue"
     required: true
     validation_rules:
       - "tg_protocol_check"
       - "tg_port_check"
       - "tg_target_type_check"
   - type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-    name: "sbcntr-frontend-app-green"
+    name: "sbcntr-frontapp-green"
     required: true
     validation_rules:
       - "tg_protocol_check"

@@ -10,10 +10,11 @@ validation_rules:
     severity: "error"
 
   # ターゲットグループのポートチェック
+  # フロントエンドは8080で待ち受ける
   - name: "tg_port_check"
     type: "property"
     property: "Port"
-    expected: 80
+    expected: 8080
     operator: "eq"
     error_message: "Target Group port should be 80"
     severity: "error"
