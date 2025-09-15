@@ -24,13 +24,13 @@ var validateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(validateCmd)
 
-	validateCmd.Flags().IntVarP(&step, "step", "s", 0, "Step number to validate (1-6)")
+	validateCmd.Flags().IntVarP(&step, "step", "s", 0, "Step number to validate (1-7)")
 	validateCmd.Flags().BoolVarP(&allSteps, "all", "a", false, "Validate all steps")
 }
 
 func runValidate(cmd *cobra.Command, args []string) error {
-	if !allSteps && (step < 1 || step > 6) {
-		return fmt.Errorf("please specify a valid step number (1-6) or use --all flag")
+	if !allSteps && (step < 1 || step > 7) {
+		return fmt.Errorf("please specify a valid step number (1-7) or use --all flag")
 	}
 
 	awsClient, err := aws.NewClient(

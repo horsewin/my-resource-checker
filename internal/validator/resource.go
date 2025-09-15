@@ -746,6 +746,16 @@ func (v *ResourceValidator) checkVPCEndpoint(ctx context.Context, endpointName s
 	// VPCエンドポイントタイプを追加
 	props["VpcEndpointType"] = string(endpoint.VpcEndpointType)
 
+	// ルートテーブルIDを追加（Gateway型エンドポイントの場合）
+	if len(endpoint.RouteTableIds) > 0 {
+		props["RouteTableIds"] = endpoint.RouteTableIds
+	}
+
+	// サブネットIDを追加（Interface型エンドポイントの場合）
+	if len(endpoint.SubnetIds) > 0 {
+		props["SubnetIds"] = endpoint.SubnetIds
+	}
+
 	// DNS設定を追加（Interface型エンドポイントの場合）
 	if string(endpoint.VpcEndpointType) == "Interface" {
 		// Interface型の場合、デフォルトでDNSは有効

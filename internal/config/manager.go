@@ -98,12 +98,12 @@ func (m *Manager) GetValidationRules(resourceType string) ([]ValidationRule, err
 }
 
 func (m *Manager) GetAllSteps() []*StepConfig {
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 7; i++ {
 		m.LoadStepConfig(i)
 	}
 
 	var steps []*StepConfig
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 7; i++ {
 		if step, exists := m.steps[i]; exists {
 			steps = append(steps, step)
 		}

@@ -87,12 +87,19 @@ chmod +x sbcntr-validator
 
 ### Step 5: ECSサービスデプロイ
 - タスク定義とECSサービスの検証
+- 書籍における【XXX節：ECSの構築】にある【XXX節：フロントAppからの一気通貫確認】までの状態を検証
 
 ### Step 6: データベース構成
 - Aurora DBクラスターとインスタンスの検証
 - DBサブネットグループの設定確認
 - DB用セキュリティグループの検証（バックエンドからのアクセス許可）
 - マスターユーザー名とエンジンタイプの確認
+- 書籍における【XXX節：データベースの構築】にある【XXX節：Aurora インスタンスの作成】までの状態を検証
+
+### Step 7: データベース接続
+- ECR API、ECR DKR、S3、CloudWatch Logs、Secrets Manager用のVPCエンドポイントの検証
+- Secrets Managerから秘匿情報を取得するIAMロール「SbcntrGettingSecrets」のポリシーの確認
+- バックエンドAppのタスク定義に設定されるべき認証情報設定の確認
 
 ## 必要なIAMポリシー
 

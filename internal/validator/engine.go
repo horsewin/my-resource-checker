@@ -76,14 +76,14 @@ func (e *Engine) ValidateStep(stepNumber int) (*ValidationResult, error) {
 
 func (e *Engine) ValidateAllSteps() (*ValidationSummary, error) {
 	summary := &ValidationSummary{
-		TotalSteps:   6,
+		TotalSteps:   7,
 		PassedSteps:  0,
 		FailedSteps:  0,
 		SkippedSteps: 0,
 		Results:      []ValidationResult{},
 	}
 
-	for i := 1; i <= 6; i++ {
+	for i := 1; i <= 7; i++ {
 		result, err := e.ValidateStep(i)
 		if err != nil {
 			summary.SkippedSteps++
@@ -132,13 +132,11 @@ func (e *Engine) validateResource(ctx context.Context, resource config.ResourceD
 	result.Status = ResourceExists
 	result.Actual = actualProps
 
-
 	for _, ruleName := range resource.ValidationRules {
 		rules, err := e.configManager.GetValidationRules(resource.Type)
 		if err != nil {
 			continue
 		}
-
 
 		for _, rule := range rules {
 			if rule.Name == ruleName {

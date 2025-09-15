@@ -68,3 +68,20 @@ validation_rules:
     operator: "eq"
     error_message: "DB security group should allow access from sbcntr-backend-app security group"
     severity: "error"
+
+  # VPCエンドポイント用セキュリティグループのHTTPSルール（Step1,Step7で使用）
+  - name: "sg_vpce_https_port"
+    type: "property"
+    property: "IngressRules[0].FromPort"
+    expected: 443
+    operator: "eq"
+    error_message: "VPC Endpoint security group should allow HTTPS (port 443)"
+    severity: "error"
+
+  - name: "sg_vpce_source_cidr"
+    type: "property"
+    property: "IngressRules[0].CidrBlocks[0]"
+    expected: "10.0.0.0/16"
+    operator: "eq"
+    error_message: "VPC Endpoint security group should allow traffic from VPC CIDR (10.0.0.0/16)"
+    severity: "error"
