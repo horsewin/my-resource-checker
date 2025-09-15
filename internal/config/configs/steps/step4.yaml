@@ -38,6 +38,32 @@ resources:
       - "ecs_infrastructure_role_name"
       - "ecs_infrastructure_policy_attached"
       - "ecs_trust_relationship"
+  - type: "AWS::EC2::VPCEndpoint"
+    name: "sbcntr-ecr-api"
+    required: true
+    validation_rules:
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
+  - type: "AWS::EC2::VPCEndpoint"
+    name: "sbcntr-ecr-dkr"
+    required: true
+    validation_rules:
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
+  - type: "AWS::EC2::VPCEndpoint"
+    name: "sbcntr-s3"
+    required: true
+    validation_rules:
+      - "vpce_attached_to_correct_vpc"
+  - type: "AWS::EC2::VPCEndpoint"
+    name: "sbcntr-logs"
+    required: true
+    validation_rules:
+      - "vpce_attached_to_correct_vpc"
+      - "vpce_security_group_check"
+      - "vpce_dns_enabled_check"
 dependencies:
   - 1
   - 2

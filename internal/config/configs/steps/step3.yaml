@@ -22,12 +22,5 @@ resources:
     required: true
     validation_rules:
       - "vpce_attached_to_correct_vpc"
-  - type: "AWS::EC2::VPCEndpoint"
-    name: "sbcntr-logs"
-    required: true
-    validation_rules:
-      - "vpce_attached_to_correct_vpc"
-      - "vpce_security_group_check"
-      - "vpce_dns_enabled_check"
 dependencies:
   - 1

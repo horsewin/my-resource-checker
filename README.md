@@ -74,10 +74,12 @@ chmod +x sbcntr-validator
 - 書籍における【XXX節：コンテナレジストリの作成】後の状態を検証
 
 ### Step 3: VPCエンドポイント設定
-- ECR API、ECR DKR、S3、CloudWatch Logs用のVPCエンドポイントの検証
-- 書籍における【XXX節：Blue/Green デプロイメント用の ALB 追加】の前までの状態を検証
+- ECR API、ECR DKR、S3用のVPCエンドポイントの検証
+- ECRに対してv1タグがついたコンテナイメージが登録されているか検証
+- 書籍における【XXX節：オーケストレーションの構築内容の確認】の前までの状態を検証
 
 ### Step 4: ECSクラスターとロードバランサー
+- ECR API、ECR DKR、S3、CloudWatch Logs用のVPCエンドポイントの検証
 - ECSクラスター、ALB、ターゲットグループの検証
 - EcsInfrastructureRoleForLoadBalancers ロールの存在確認
 - AmazonECSInfrastructureRolePolicyForLoadBalancersポリシーのアタッチメント確認
