@@ -75,7 +75,7 @@ chmod +x sbcntr-validator
 
 ### Step 3: VPCエンドポイント設定
 - ECR API、ECR DKR、S3、CloudWatch Logs用のVPCエンドポイントの検証
-- 書籍における【XXX節：Blue/Green デプロイメント用の ALB 追加】までの状態を検証
+- 書籍における【XXX節：Blue/Green デプロイメント用の ALB 追加】の前までの状態を検証
 
 ### Step 4: ECSクラスターとロードバランサー
 - ECSクラスター、ALB、ターゲットグループの検証
