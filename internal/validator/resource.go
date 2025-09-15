@@ -2,7 +2,9 @@ package validator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	"regexp"
 	"sbcntr2-test-tool/internal/aws"
@@ -16,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 )
 
 type ResourceValidator struct {
@@ -60,6 +63,8 @@ func (v *ResourceValidator) CheckResourceExists(ctx context.Context, resourceTyp
 		return v.checkDBInstance(ctx, resourceName)
 	case "AWS::RDS::DBSubnetGroup":
 		return v.checkDBSubnetGroup(ctx, resourceName)
+	case "AWS::IAM::Role":
+		return v.checkIAMRole(ctx, resourceName)
 	default:
 		return v.checkCloudControlResource(ctx, resourceType, resourceName)
 	}
@@ -69,16 +74,6 @@ func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rul
 	// ネストされたプロパティや配列アクセスに対応
 	actualValue, exists := v.getNestedProperty(actualProps, rule.Property)
 
-	// デバッグ: db_instance_security_group_checkの場合のみ詳細を出力
-	if rule.Name == "db_instance_security_group_check" {
-		fmt.Printf("\n=== DEBUG: Validating Security Group ===\n")
-		fmt.Printf("Rule Name: %s\n", rule.Name)
-		fmt.Printf("Property Path: %s\n", rule.Property)
-		fmt.Printf("Expected: %v\n", rule.Expected)
-		fmt.Printf("Actual Value: %v (exists: %v, type: %T)\n", actualValue, exists, actualValue)
-		fmt.Printf("Operator: %s\n", rule.Operator)
-		fmt.Printf("======================================\n\n")
-	}
 
 	if !exists && rule.Type == "exists" {
 		return fmt.Errorf("%s: property '%s' not found", rule.ErrorMessage, rule.Property)
@@ -100,60 +95,108 @@ func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rul
 
 // getNestedProperty はネストされたプロパティや配列要素にアクセスする
 // 例: "IngressRules[0].FromPort" -> IngressRules配列の0番目のFromPortプロパティ
+// 例: "AttachedManagedPolicies[*].PolicyName" -> すべてのポリシー名の配列
 func (v *ResourceValidator) getNestedProperty(props map[string]interface{}, path string) (interface{}, bool) {
 	if path == "" {
 		return nil, false
 	}
 
+
 	// パスを分割（例: "IngressRules[0].FromPort" -> ["IngressRules[0]", "FromPort"]）
 	parts := strings.Split(path, ".")
 	var current interface{} = props
 
-	for _, part := range parts {
+	for i, part := range parts {
 		// 配列インデックスを確認
 		if strings.Contains(part, "[") {
-			// 配列名とインデックスを分離
-			arrayMatch := regexp.MustCompile(`^([^\[]+)\[(\d+)\]$`).FindStringSubmatch(part)
-			if len(arrayMatch) != 3 {
-				return nil, false
-			}
+			// [*]の場合：すべての要素から残りのパスのプロパティを抽出
+			if strings.Contains(part, "[*]") {
+				arrayName := strings.Split(part, "[")[0]
 
-			arrayName := arrayMatch[1]
-			index, err := strconv.Atoi(arrayMatch[2])
-			if err != nil {
-				return nil, false
-			}
 
-			// 現在のオブジェクトから配列を取得
-			switch obj := current.(type) {
-			case map[string]interface{}:
-				arr, ok := obj[arrayName]
-				if !ok {
-					return nil, false
-				}
-
-				// 配列要素にアクセス
-				switch a := arr.(type) {
-				case []interface{}:
-					if index < 0 || index >= len(a) {
+				// 現在のオブジェクトから配列を取得
+				switch obj := current.(type) {
+				case map[string]interface{}:
+					arr, ok := obj[arrayName]
+					if !ok {
 						return nil, false
 					}
-					current = a[index]
-				case []map[string]interface{}:
-					if index < 0 || index >= len(a) {
-						return nil, false
+
+
+					// 残りのパスがある場合、各要素から抽出
+					if i < len(parts)-1 {
+						remainingPath := strings.Join(parts[i+1:], ".")
+						var results []interface{}
+
+						switch a := arr.(type) {
+						case []interface{}:
+							for _, item := range a {
+								if itemMap, ok := item.(map[string]interface{}); ok {
+									if val, exists := v.getNestedProperty(itemMap, remainingPath); exists {
+										results = append(results, val)
+									}
+								}
+							}
+						case []map[string]interface{}:
+							for _, item := range a {
+								if val, exists := v.getNestedProperty(item, remainingPath); exists {
+									results = append(results, val)
+								}
+							}
+						}
+
+						return results, len(results) > 0
 					}
-					current = a[index]
-				case []string:
-					if index < 0 || index >= len(a) {
-						return nil, false
-					}
-					current = a[index]
+
+					// 残りのパスがない場合、配列そのものを返す
+					return arr, true
 				default:
 					return nil, false
 				}
-			default:
-				return nil, false
+			} else {
+				// 特定のインデックスの場合
+				arrayMatch := regexp.MustCompile(`^([^\[]+)\[(\d+)\]$`).FindStringSubmatch(part)
+				if len(arrayMatch) != 3 {
+					return nil, false
+				}
+
+				arrayName := arrayMatch[1]
+				index, err := strconv.Atoi(arrayMatch[2])
+				if err != nil {
+					return nil, false
+				}
+
+				// 現在のオブジェクトから配列を取得
+				switch obj := current.(type) {
+				case map[string]interface{}:
+					arr, ok := obj[arrayName]
+					if !ok {
+						return nil, false
+					}
+
+					// 配列要素にアクセス
+					switch a := arr.(type) {
+					case []interface{}:
+						if index < 0 || index >= len(a) {
+							return nil, false
+						}
+						current = a[index]
+					case []map[string]interface{}:
+						if index < 0 || index >= len(a) {
+							return nil, false
+						}
+						current = a[index]
+					case []string:
+						if index < 0 || index >= len(a) {
+							return nil, false
+						}
+						current = a[index]
+					default:
+						return nil, false
+					}
+				default:
+					return nil, false
+				}
 			}
 		} else {
 			// 通常のプロパティアクセス
@@ -334,9 +377,31 @@ func (v *ResourceValidator) compareNumbers(actual, expected interface{}, operato
 }
 
 func (v *ResourceValidator) contains(actual, expected interface{}) bool {
-	actualStr := fmt.Sprintf("%v", actual)
-	expectedStr := fmt.Sprintf("%v", expected)
-	return strings.Contains(actualStr, expectedStr)
+	// 配列の場合、配列内の要素をチェック
+	switch actualVal := actual.(type) {
+	case []interface{}:
+		expectedStr := fmt.Sprintf("%v", expected)
+		for _, item := range actualVal {
+			itemStr := fmt.Sprintf("%v", item)
+			if itemStr == expectedStr {
+				return true
+			}
+		}
+		return false
+	case []string:
+		expectedStr := fmt.Sprintf("%v", expected)
+		for _, item := range actualVal {
+			if item == expectedStr {
+				return true
+			}
+		}
+		return false
+	default:
+		// 配列でない場合は文字列比較
+		actualStr := fmt.Sprintf("%v", actual)
+		expectedStr := fmt.Sprintf("%v", expected)
+		return strings.Contains(actualStr, expectedStr)
+	}
 }
 
 func (v *ResourceValidator) matchRegex(actual, expected interface{}) bool {
@@ -1033,46 +1098,24 @@ func (v *ResourceValidator) checkDBInstance(ctx context.Context, instanceIdentif
 	if vpcSgIds, ok := resource.Properties["VPCSecurityGroups"]; ok {
 		if sgArray, ok := vpcSgIds.([]interface{}); ok {
 			var sgNames []interface{}
-			fmt.Printf("\n=== Converting Security Group IDs to Names ===\n")
 			for _, sgId := range sgArray {
 				if sgIdStr, ok := sgId.(string); ok {
 					// セキュリティグループIDからNameタグを取得
 					sgName, err := v.getSecurityGroupName(ctx, sgIdStr)
 					if err == nil && sgName != "" {
-						fmt.Printf("  %s -> %s\n", sgIdStr, sgName)
 						sgNames = append(sgNames, sgName)
 					} else {
 						// Nameタグが取得できない場合はIDをそのまま使用
-						fmt.Printf("  %s -> (no Name tag, using ID)\n", sgIdStr)
 						sgNames = append(sgNames, sgIdStr)
 					}
 				}
 			}
-			fmt.Printf("=================================\n")
 			// VPCSecurityGroupsをNameタグの配列に置き換え
 			if len(sgNames) > 0 {
 				resource.Properties["VPCSecurityGroups"] = sgNames
 			}
 		}
 	}
-
-	// デバッグ: DBインスタンスの全プロパティを出力
-	fmt.Printf("\n=== DEBUG: DBInstance '%s' All Properties ===\n", instanceIdentifier)
-	for key, value := range resource.Properties {
-		// 値の型によって出力を調整
-		switch v := value.(type) {
-		case []interface{}:
-			fmt.Printf("%s: [array with %d items] (type: %T)\n", key, len(v), value)
-			for i, item := range v {
-				fmt.Printf("  [%d]: %v\n", i, item)
-			}
-		case map[string]interface{}:
-			fmt.Printf("%s: [map] (type: %T)\n", key, value)
-		default:
-			fmt.Printf("%s: %v (type: %T)\n", key, value, value)
-		}
-	}
-	fmt.Printf("=====================================\n\n")
 
 	return true, resource.Properties, nil
 }
@@ -1093,4 +1136,64 @@ func (v *ResourceValidator) checkCloudControlResource(ctx context.Context, resou
 	}
 
 	return true, resource.Properties, nil
+}
+
+func (v *ResourceValidator) checkIAMRole(ctx context.Context, roleName string) (bool, map[string]interface{}, error) {
+	// IAMロールの詳細を取得
+	getRoleInput := &iam.GetRoleInput{
+		RoleName: &roleName,
+	}
+
+	roleResult, err := v.awsClient.IAM.GetRole(ctx, getRoleInput)
+	if err != nil {
+		return false, nil, nil
+	}
+
+	if roleResult.Role == nil {
+		return false, nil, nil
+	}
+
+	role := roleResult.Role
+	props := map[string]interface{}{
+		"RoleName": *role.RoleName,
+		"RoleArn":  *role.Arn,
+	}
+
+	// AssumeRolePolicyDocumentを追加
+	if role.AssumeRolePolicyDocument != nil {
+		var assumeRolePolicy map[string]interface{}
+		// URLデコードが必要な場合があるので、デコード処理を追加
+		policyDoc := *role.AssumeRolePolicyDocument
+
+		// URLデコードが必要な場合
+		decodedPolicy, err := url.QueryUnescape(policyDoc)
+		if err == nil {
+			policyDoc = decodedPolicy
+		}
+
+		err = json.Unmarshal([]byte(policyDoc), &assumeRolePolicy)
+		if err == nil {
+			props["AssumeRolePolicyDocument"] = assumeRolePolicy
+		}
+	}
+
+	// アタッチされているマネージドポリシーを取得
+	listPoliciesInput := &iam.ListAttachedRolePoliciesInput{
+		RoleName: &roleName,
+	}
+
+	policiesResult, err := v.awsClient.IAM.ListAttachedRolePolicies(ctx, listPoliciesInput)
+	if err == nil && policiesResult != nil {
+		var attachedPolicies []map[string]interface{}
+		for _, policy := range policiesResult.AttachedPolicies {
+			attachedPolicy := map[string]interface{}{
+				"PolicyArn":  *policy.PolicyArn,
+				"PolicyName": *policy.PolicyName,
+			}
+			attachedPolicies = append(attachedPolicies, attachedPolicy)
+		}
+		props["AttachedManagedPolicies"] = attachedPolicies
+	}
+
+	return true, props, nil
 }

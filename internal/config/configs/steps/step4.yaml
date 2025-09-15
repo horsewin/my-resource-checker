@@ -30,6 +30,14 @@ resources:
       - "tg_protocol_check"
       - "tg_port_check"
       - "tg_target_type_check"
+  - type: "AWS::IAM::Role"
+    name: "EcsInfrastructureRoleForLoadBalancers"
+    required: true
+    validation_rules:
+      - "iam_role_exists"
+      - "ecs_infrastructure_role_name"
+      - "ecs_infrastructure_policy_attached"
+      - "ecs_trust_relationship"
 dependencies:
   - 1
   - 2

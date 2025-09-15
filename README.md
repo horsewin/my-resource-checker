@@ -79,6 +79,8 @@ chmod +x sbcntr-validator
 
 ### Step 4: ECSクラスターとロードバランサー
 - ECSクラスター、ALB、ターゲットグループの検証
+- EcsInfrastructureRoleForLoadBalancers ロールの存在確認
+- AmazonECSInfrastructureRolePolicyForLoadBalancersポリシーのアタッチメント確認
 
 ### Step 5: ECSサービスデプロイ
 - タスク定義とECSサービスの検証
@@ -113,7 +115,9 @@ chmod +x sbcntr-validator
         "ecs:ListClusters",
         "ecr:DescribeRepositories",
         "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeTargetGroups"
+        "elasticloadbalancing:DescribeTargetGroups",
+        "iam:GetRole",
+        "iam:ListAttachedRolePolicies"
       ],
       "Resource": "*"
     }

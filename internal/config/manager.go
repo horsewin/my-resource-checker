@@ -61,6 +61,7 @@ func (m *Manager) LoadResourceConfig(resourceType string) (*ResourceConfig, erro
 		"AWS::RDS::DBCluster":                       "aurora.yaml",
 		"AWS::RDS::DBInstance":                      "rds_instance.yaml",
 		"AWS::RDS::DBSubnetGroup":                   "rds_subnet_group.yaml",
+		"AWS::IAM::Role":                            "iam_role.yaml",
 	}
 
 	yamlFile, ok := fileMap[resourceType]

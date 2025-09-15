@@ -1,0 +1,35 @@
+type: "AWS::IAM::Role"
+validation_rules:
+  # IAMロールの存在チェック
+  - name: "iam_role_exists"
+    type: "exists"
+    property: "RoleName"
+    error_message: "IAM Role must exist"
+    severity: "error"
+
+  # EcsInfrastructureRoleForLoadBalancersロール名チェック
+  - name: "ecs_infrastructure_role_name"
+    type: "property"
+    property: "RoleName"
+    expected: "EcsInfrastructureRoleForLoadBalancers"
+    operator: "eq"
+    error_message: "IAM Role should be named 'EcsInfrastructureRoleForLoadBalancers'"
+    severity: "error"
+
+  # AmazonECSInfrastructureRolePolicyForLoadBalancersポリシーのアタッチチェック
+  - name: "ecs_infrastructure_policy_attached"
+    type: "property"
+    property: "AttachedManagedPolicies[*].PolicyName"
+    expected: "AmazonECSInfrastructureRolePolicyForLoadBalancers"
+    operator: "contains"
+    error_message: "Role should have 'AmazonECSInfrastructureRolePolicyForLoadBalancers' policy attached"
+    severity: "error"
+
+  # 信頼関係の確認（ECSサービスプリンシパル）
+  - name: "ecs_trust_relationship"
+    type: "property"
+    property: "AssumeRolePolicyDocument.Statement[*].Principal.Service"
+    expected: "ecs.amazonaws.com"
+    operator: "contains"
+    error_message: "Role should have trust relationship with ECS service"
+    severity: "warning"

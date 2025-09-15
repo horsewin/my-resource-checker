@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 )
 
 type Client struct {
@@ -22,6 +23,7 @@ type Client struct {
 	ECR            *ecr.Client
 	ECS            *ecs.Client
 	ELBv2          *elasticloadbalancingv2.Client
+	IAM            *iam.Client
 }
 
 func NewClient(region string, profile string) (*Client, error) {
@@ -50,6 +52,7 @@ func NewClient(region string, profile string) (*Client, error) {
 		ECR:            ecr.NewFromConfig(cfg),
 		ECS:            ecs.NewFromConfig(cfg),
 		ELBv2:          elasticloadbalancingv2.NewFromConfig(cfg),
+		IAM:            iam.NewFromConfig(cfg),
 	}, nil
 }
 
