@@ -1,6 +1,6 @@
 number: 3
 name: "VPC Endpoints Setup"
-description: "VPC Endpoints for ECR, S3, and CloudWatch Logs"
+description: "VPC Endpoints for ECR, S3, and CloudWatch Logs, and ECR image validation"
 cloudformation_stacks: []
 resources:
   - type: "AWS::EC2::VPCEndpoint"
@@ -22,5 +22,16 @@ resources:
     required: true
     validation_rules:
       - "vpce_attached_to_correct_vpc"
+  - type: "AWS::ECR::Repository"
+    name: "sbcntr-backend-app"
+    required: true
+    validation_rules:
+      - "ecr_image_tag_v1_exists"
+  - type: "AWS::ECR::Repository"
+    name: "sbcntr-frontend-app"
+    required: true
+    validation_rules:
+      - "ecr_image_tag_v1_exists"
 dependencies:
   - 1
+  - 2

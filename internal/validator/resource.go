@@ -74,7 +74,6 @@ func (v *ResourceValidator) ValidateRule(actualProps map[string]interface{}, rul
 	// ネストされたプロパティや配列アクセスに対応
 	actualValue, exists := v.getNestedProperty(actualProps, rule.Property)
 
-
 	if !exists && rule.Type == "exists" {
 		return fmt.Errorf("%s: property '%s' not found", rule.ErrorMessage, rule.Property)
 	}
@@ -101,7 +100,6 @@ func (v *ResourceValidator) getNestedProperty(props map[string]interface{}, path
 		return nil, false
 	}
 
-
 	// パスを分割（例: "IngressRules[0].FromPort" -> ["IngressRules[0]", "FromPort"]）
 	parts := strings.Split(path, ".")
 	var current interface{} = props
@@ -113,7 +111,6 @@ func (v *ResourceValidator) getNestedProperty(props map[string]interface{}, path
 			if strings.Contains(part, "[*]") {
 				arrayName := strings.Split(part, "[")[0]
 
-
 				// 現在のオブジェクトから配列を取得
 				switch obj := current.(type) {
 				case map[string]interface{}:
@@ -121,7 +118,6 @@ func (v *ResourceValidator) getNestedProperty(props map[string]interface{}, path
 					if !ok {
 						return nil, false
 					}
-
 
 					// 残りのパスがある場合、各要素から抽出
 					if i < len(parts)-1 {
@@ -800,6 +796,26 @@ func (v *ResourceValidator) checkECRRepository(ctx context.Context, repoName str
 
 	// ImageTagMutabilityを追加
 	props["ImageTagMutability"] = string(repo.ImageTagMutability)
+
+	// イメージタグを取得
+	imageInput := &ecr.ListImagesInput{
+		RepositoryName: repo.RepositoryName,
+	}
+
+	// ImageTagsを空配列で初期化
+	imageTags := []string{}
+
+	imageResult, err := v.awsClient.ECR.ListImages(ctx, imageInput)
+	if err == nil && imageResult != nil {
+		for _, imageId := range imageResult.ImageIds {
+			if imageId.ImageTag != nil {
+				imageTags = append(imageTags, *imageId.ImageTag)
+			}
+		}
+	}
+
+	// 常にImageTagsを設定（空配列でも）
+	props["ImageTags"] = imageTags
 
 	return true, props, nil
 }

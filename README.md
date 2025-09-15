@@ -75,7 +75,7 @@ chmod +x sbcntr-validator
 
 ### Step 3: VPCエンドポイント設定
 - ECR API、ECR DKR、S3用のVPCエンドポイントの検証
-- ECRに対してv1タグがついたコンテナイメージが登録されているか検証
+- フロントエンド/バックエンド両方のECRリポジトリにv1タグのコンテナイメージが登録されているか検証
 - 書籍における【XXX節：オーケストレーションの構築内容の確認】の前までの状態を検証
 
 ### Step 4: ECSクラスターとロードバランサー
@@ -83,7 +83,7 @@ chmod +x sbcntr-validator
 - ECSクラスター、ALB、ターゲットグループの検証
 - EcsInfrastructureRoleForLoadBalancers ロールの存在確認
 - AmazonECSInfrastructureRolePolicyForLoadBalancersポリシーのアタッチメント確認
-- 書籍における【XXX節：ECSの構築】までの状態を検証
+- 書籍における【XXX節：ECSの構築】にある【XXX節：ECS クラスターの作成】までの状態を検証
 
 ### Step 5: ECSサービスデプロイ
 - タスク定義とECSサービスの検証
@@ -117,6 +117,7 @@ chmod +x sbcntr-validator
         "ecs:DescribeTaskDefinition",
         "ecs:ListClusters",
         "ecr:DescribeRepositories",
+        "ecr:ListImages",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeTargetGroups",
         "iam:GetRole",
